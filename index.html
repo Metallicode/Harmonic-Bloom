@@ -2,67 +2,51 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Infinite Harmonic Mandala</title>
+    <title>Harmonic Mandala - Hover & Color</title>
     <style>
         :root { --accent: #00d2ff; --bg: #111; --panel: #1e1e1e; }
         body { background: var(--bg); color: #eee; font-family: 'Segoe UI', sans-serif; margin: 0; overflow: hidden; display: flex; height: 100vh; }
         
-        /* SCROLLABLE SIDEBAR */
+        /* SIDEBAR */
         #sidebar { 
-            width: 320px; 
+            width: 340px; 
             background: var(--panel); 
             border-right: 1px solid #333; 
-            display: flex; 
-            flex-direction: column; 
-            z-index: 10; 
-            box-shadow: 5px 0 15px rgba(0,0,0,0.5);
+            display: flex; flex-direction: column; 
+            z-index: 10; box-shadow: 5px 0 15px rgba(0,0,0,0.5);
         }
-        
         .header { padding: 20px; border-bottom: 1px solid #333; }
         h2 { margin: 0; color: var(--accent); font-weight: 300; letter-spacing: 1px; }
+        p { margin: 5px 0 0 0; font-size: 0.8em; color: #888; }
         
-        /* RINGS CONTAINER */
-        #rings-container { 
-            flex-grow: 1; 
-            overflow-y: auto; 
-            padding: 15px; 
-        }
-
+        #rings-container { flex-grow: 1; overflow-y: auto; padding: 15px; }
+        
         .ring-control { 
-            background: #2a2a2a; 
-            border: 1px solid #444; 
-            border-radius: 6px; 
-            padding: 10px; 
-            margin-bottom: 10px; 
-            position: relative;
+            background: #2a2a2a; border: 1px solid #444; 
+            border-radius: 6px; padding: 10px; margin-bottom: 10px; position: relative;
         }
         .ring-control h4 { margin: 0 0 8px 0; color: #888; font-size: 0.8rem; text-transform: uppercase; display: flex; justify-content: space-between; }
         .ring-remove { cursor: pointer; color: #ff4444; font-weight: bold; }
-        .ring-remove:hover { color: #ff0000; }
-
+        
         select { width: 100%; padding: 8px; background: #111; border: 1px solid #555; color: white; border-radius: 4px; margin-bottom: 5px; font-size: 0.9rem; }
         
-        /* BOTTOM ACTIONS */
         .actions { padding: 20px; border-top: 1px solid #333; display: flex; flex-direction: column; gap: 10px; }
-        
-        button { 
-            width: 100%; padding: 12px; border: none; border-radius: 4px; 
-            cursor: pointer; font-weight: bold; transition: 0.2s; 
-        }
+        button { width: 100%; padding: 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; transition: 0.2s; }
         .btn-add { background: #333; color: #ccc; border: 1px dashed #666; }
         .btn-add:hover { background: #444; color: white; border-color: white; }
         .btn-gen { background: var(--accent); color: #000; }
         .btn-gen:hover { background: #66e0ff; }
 
         /* CANVAS */
-        #canvas-container { flex-grow: 1; position: relative; background: radial-gradient(circle at center, #222 0%, #000 100%); }
+        #canvas-container { flex-grow: 1; position: relative; background: radial-gradient(circle at center, #222 0%, #000 100%); cursor: crosshair; }
     </style>
 </head>
 <body>
 
 <div id="sidebar">
     <div class="header">
-        <h2>Harmonic Infinity</h2>
+        <h2>Harmonic Mandala</h2>
+        <p>Hover over nodes to play.</p>
     </div>
 
     <div style="padding: 15px 15px 0 15px;">
@@ -77,12 +61,12 @@
             <select id="rootQuality" style="width:80px;">
                 <option value="">Maj</option>
                 <option value="m">Min</option>
+                <option value="Maj7">Maj7</option>
             </select>
         </div>
     </div>
 
-    <div id="rings-container">
-        </div>
+    <div id="rings-container"></div>
 
     <div class="actions">
         <button class="btn-add" onclick="addRingUI()">+ Add Ring Layer</button>
@@ -98,8 +82,6 @@
     // ==========================================
     // 1. CONFIG & DATA
     // ==========================================
-    
-    // Full Chromatic Intervals
     const INTERVAL_OPTIONS = [
         { val: "1", label: "Minor 2nd (1 semitone)" },
         { val: "2", label: "Major 2nd (2 semitones)" },
@@ -108,432 +90,323 @@
         { val: "5", label: "Perfect 4th (5 semitones)" },
         { val: "6", label: "Tritone (6 semitones)" },
         { val: "7", label: "Perfect 5th (7 semitones)" },
-        { val: "8", label: "Minor 6th (8 semitones)" },
-        { val: "9", label: "Major 6th (9 semitones)" },
-        { val: "10", label: "Minor 7th (10 semitones)" },
         { val: "11", label: "Major 7th (11 semitones)" }
     ];
 
-const CONNECTION_OPTIONS = [
-    { val: "common2", label: "Share 2 Notes (Smooth)" },
-    { val: "common1", label: "Share 1 Note (Pivot)" },
-    { val: "coltrane", label: "Coltrane Cycle (Maj 3rds)" }, // Coltrane
-    { val: "parallel", label: "Debussy Planing (Parallel)" }, // Debussy
-    { val: "extend",   label: "Zappa Extension (Add Density)" } // Zappa
-];
-    let ringsConfig = []; // Stores the state of our rings
+    const CONNECTION_OPTIONS = [
+        { val: "common2", label: "Share 2 Notes (Smooth)" },
+        { val: "common1", label: "Share 1 Note (Pivot)" },
+        { val: "parallel", label: "Debussy Planing (Parallel)" },
+        { val: "coltrane", label: "Coltrane Cycle (Maj 3rds)" },
+        { val: "extend",   label: "Zappa Extension (Add Density)" }
+    ];
+
+    const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+    const FREQS = { "C":261.63, "C#":277.18, "D":293.66, "D#":311.13, "E":329.63, "F":349.23, "F#":369.99, "G":392.00, "G#":415.30, "A":440.00, "A#":466.16, "B":493.88 };
 
     // ==========================================
-    // 2. DYNAMIC UI GENERATOR
+    // 2. HELPER FUNCTIONS
     // ==========================================
     
+    // NEW: Color by Note Logic (Rainbow)
+    function getNoteColor(chordLabel) {
+        // Extract root note
+        let root = chordLabel.match(/^[A-G][#b]?/)[0]; 
+        let idx = NOTE_NAMES.indexOf(root);
+        
+        // 12 chromatic steps mapped to 360 color wheel (30 degrees each)
+        // C=0(Red), D=60(Yellow), E=120(Green), G=210(Blue)
+        let hue = (idx * 30) % 360; 
+        return `hsl(${hue}, 80%, 50%)`;
+    }
+
+    // Extended Harmonic Parser (Zappa/Jazz support)
+    function getIndices(chordName) {
+        let rootStr = chordName.match(/^[A-G][#b]?/)[0];
+        let root = NOTE_NAMES.indexOf(rootStr);
+        let indices = [root];
+
+        let isMin = chordName.includes("m") && !chordName.includes("Maj");
+        let isMaj7 = chordName.includes("Maj7");
+        let isDom7 = chordName.includes("7") && !isMaj7;
+        let is9 = chordName.includes("9");
+        let is11 = chordName.includes("11");
+
+        indices.push((root + (isMin ? 3 : 4)) % 12); // 3rd
+        indices.push((root + 7) % 12); // 5th
+        if (isMaj7) indices.push((root + 11) % 12);
+        if (isDom7 || (isMin && chordName.includes("7"))) indices.push((root + 10) % 12);
+        if (is9 || is11) indices.push((root + 2) % 12); // 9th
+        if (is11) indices.push((root + 5) % 12); // 11th
+
+        return indices;
+    }
+
+    function getName(idx) { return NOTE_NAMES[(idx + 1200) % 12]; }
+
+    // ==========================================
+    // 3. UI GENERATOR
+    // ==========================================
     const container = document.getElementById("rings-container");
 
     function createSelect(options, selectedVal) {
-        let html = "";
-        options.forEach(opt => {
-            html += `<option value="${opt.val}" ${opt.val == selectedVal ? 'selected' : ''}>${opt.label}</option>`;
-        });
-        return html;
+        return options.map(opt => `<option value="${opt.val}" ${opt.val == selectedVal ? 'selected' : ''}>${opt.label}</option>`).join('');
     }
 
-// FIX: Use a counter or random number to prevent ID collisions
     function addRingUI(defaultType = 'interval', defaultVal = '7') {
-        // Generate a truly unique ID even if code runs instantly
-        const id = Math.floor(Math.random() * 10000000); 
-        
+        const id = Math.floor(Math.random() * 10000000);
         const div = document.createElement("div");
         div.className = "ring-control";
         div.id = `ring-${id}`;
-        
-        const ringNum = container.children.length + 1;
-
         div.innerHTML = `
-            <h4>
-                Ring ${ringNum}
-                <span class="ring-remove" onclick="removeRing('${id}')">&times;</span>
-            </h4>
+            <h4>Ring ${container.children.length + 1} <span class="ring-remove" onclick="removeRing('${id}')">&times;</span></h4>
             <select class="rule-type" onchange="updateRow('${id}')">
                 <option value="interval" ${defaultType === 'interval' ? 'selected' : ''}>Generate by Interval</option>
-                <option value="connection" ${defaultType === 'connection' ? 'selected' : ''}>Find Connections</option>
+                <option value="connection" ${defaultType === 'connection' ? 'selected' : ''}>Harmonic Rule</option>
             </select>
-            <select class="rule-value">
-                </select>
+            <select class="rule-value"></select>
         `;
-        
         container.appendChild(div);
-        
-        // Now populates correctly because ID is unique
         updateRow(id, defaultVal);
     }
 
     function updateRow(id, preservedVal) {
         const div = document.getElementById(`ring-${id}`);
-        const typeSelect = div.querySelector(".rule-type");
+        const type = div.querySelector(".rule-type").value;
         const valSelect = div.querySelector(".rule-value");
-        const type = typeSelect.value;
-
-        // Populate the second dropdown based on the first
-        if (type === 'interval') {
-            valSelect.innerHTML = createSelect(INTERVAL_OPTIONS, preservedVal || '7');
-        } else {
-            valSelect.innerHTML = createSelect(CONNECTION_OPTIONS, preservedVal || 'common2');
-        }
+        valSelect.innerHTML = createSelect(type === 'interval' ? INTERVAL_OPTIONS : CONNECTION_OPTIONS, preservedVal || (type === 'interval'?'7':'common2'));
     }
 
     function removeRing(id) {
         document.getElementById(`ring-${id}`).remove();
-        // Renumber headers
-        Array.from(container.children).forEach((child, idx) => {
-            child.querySelector("h4").childNodes[0].textContent = `Ring ${idx + 1} `;
-        });
     }
 
-    // Initialize with 3 rings
-    addRingUI('interval', '4'); // Maj 3rds
-    addRingUI('connection', 'common2'); // Smooth
-    addRingUI('interval', '7'); // 5ths
+    // Init UI
+    addRingUI('interval', '4'); 
+    addRingUI('connection', 'common2');
+    addRingUI('connection', 'extend');
 
     // ==========================================
-    // 3. MUSIC LOGIC
+    // 4. GRAPH ENGINE
     // ==========================================
-    
-// ==========================================
-// ZAPPA UPGRADE: EXTENDED HARMONY
-// ==========================================
-const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
-
-function getIndices(chordName) {
-    // 1. Parse Root
-    let rootStr = chordName.replace(/m|Maj|7|9|11|#|b/g, (m) => {
-        // Keep # or b attached to note, strip the rest
-        return (m==='#'||m==='b') ? m : ''; 
-    });
-    // Clean up if regex missed (e.g. "C#m7" -> root "C#")
-    if(chordName.startsWith(rootStr)) rootStr = chordName.match(/^[A-G][#b]?/)[0];
-    
-    let root = NOTE_NAMES.indexOf(rootStr);
-    let indices = [root]; // Start with Root
-
-    // 2. Parse Quality & Extensions
-    let isMin = chordName.includes("m") && !chordName.includes("Maj");
-    let isMaj7 = chordName.includes("Maj7");
-    let isDom7 = chordName.includes("7") && !isMaj7; // "C7"
-    let is9 = chordName.includes("9");
-    let is11 = chordName.includes("11");
-
-    // Third (Minor = 3, Major = 4)
-    indices.push((root + (isMin ? 3 : 4)) % 12);
-    
-    // Fifth (Perfect = 7)
-    indices.push((root + 7) % 12);
-
-    // Seventh (Maj7 = 11, Dom7/min7 = 10)
-    if (isMaj7) indices.push((root + 11) % 12);
-    if (isDom7 || (isMin && chordName.includes("7"))) indices.push((root + 10) % 12);
-
-    // Ninth (Major 2nd up an octave = 2)
-    if (is9 || is11) indices.push((root + 2) % 12);
-
-    // Eleventh (Perfect 4th up an octave = 5, or #11 = 6)
-    if (is11) indices.push((root + 5) % 12); 
-
-    return indices;
-}
-    function getName(rootIdx, isMin) {
-        return NOTE_NAMES[(rootIdx + 1200) % 12] + (isMin ? "m" : "");
-    }
-
-  function generateNextLayer(parentChord, ruleType, ruleVal) {
-    let children = [];
-    let pIndices = getIndices(parentChord);
-    let pRoot = pIndices[0];
-    
-    // Helper to get raw root name without "m" or numbers
-    let pRootName = parentChord.match(/^[A-G][#b]?/)[0];
-    let quality = parentChord.substring(pRootName.length); // "m7", "Maj9" etc.
-
-    if (ruleType === 'interval') {
-        let interval = parseInt(ruleVal);
-        let up = getName((pRoot + interval)%12) + quality;
-        let down = getName((pRoot - interval + 12)%12) + quality;
-        children.push(up, down);
-    } 
-    else if (ruleType === 'connection') {
-        
-        // --- DEBUSSY: PARALLEL PLANING ---
-        if (ruleVal === 'parallel') {
-            // Move the EXACT same chord structure by Whole Tone and Minor 3rd
-            children.push(getName((pRoot + 2)%12) + quality); // Whole tone up
-            children.push(getName((pRoot - 2 + 12)%12) + quality); // Whole tone down
-            children.push(getName((pRoot + 3)%12) + quality); // Min 3rd up
-        }
-        
-        // --- COLTRANE: GIANT STEPS ---
-        else if (ruleVal === 'coltrane') {
-            // The Coltrane Matrix is Root, Root+4, Root+8 (Augmented Triad)
-            children.push(getName((pRoot + 4)%12) + quality);
-            children.push(getName((pRoot + 8)%12) + quality);
-        }
-
-        // --- ZAPPA: EXTENSIONS ---
-        else if (ruleVal === 'extend') {
-            // Keep the root, change the quality to be denser
-            if (!quality.includes("7")) children.push(pRootName + (quality=="m"?"m7":"Maj7"));
-            else if (!quality.includes("9")) children.push(pRootName + (quality.includes("m")?"m9":"Maj9"));
-            else children.push(pRootName + (quality.includes("m")?"m11":"Maj11")); // Go crazy
-        }
-
-        // --- STANDARD CONNECTIONS ---
-        else if (ruleVal.startsWith("common")) {
-            let required = parseInt(ruleVal.replace("common", ""));
-            for(let i=0; i<12; i++) {
-                // Check simple Major/Minor triads for connections to keep it performant
-                ["", "m"].forEach(q => {
-                    let cand = getName(i) + q;
-                    if (cand === parentChord) return;
-                    let cIndices = getIndices(cand);
-                    let shared = pIndices.filter(n => cIndices.includes(n)).length;
-                    if (shared >= required) children.push(cand);
-                });
-            }
-        }
-    }
-    
-    return [...new Set(children)].slice(0, 6);
-}
-
-// Helper needed for new logic
-function getName(idx) {
-    return NOTE_NAMES[(idx + 1200) % 12];
-}
-    // ==========================================
-    // 4. GRAPH BUILDER (Recursive)
-    // ==========================================
-
     let nodes = [];
     let edges = [];
 
-    function generateGraph() {
-        // 1. Read UI State
-        let uiRings = Array.from(container.children);
-        let rules = uiRings.map(div => ({
-            type: div.querySelector(".rule-type").value,
-            val: div.querySelector(".rule-value").value
-        }));
+    function generateNextLayer(parentChord, ruleType, ruleVal) {
+        let children = [];
+        let pIndices = getIndices(parentChord);
+        let pRoot = pIndices[0];
+        let pRootName = parentChord.match(/^[A-G][#b]?/)[0];
+        let quality = parentChord.substring(pRootName.length);
 
-        nodes = [];
-        edges = [];
-
-        // 2. Root
-        let rootNote = document.getElementById("rootNote").value;
-        let rootQual = document.getElementById("rootQuality").value;
-        let rootChord = rootNote + rootQual;
-
-        let rootNode = {
-            id: "root",
-            label: rootChord,
-            depth: 0,
-            angle: 0,
-            span: Math.PI * 2,
-            x: 0, y: 0
-        };
-        nodes.push(rootNode);
-
-        // 3. Recursive Build
-        // We pass a list of parents from the previous layer
-        let parents = [rootNode];
-
-        rules.forEach((rule, depthIndex) => {
-            let nextGeneration = [];
-            let depth = depthIndex + 1;
-            
-            parents.forEach(parent => {
-                let childrenChords = generateNextLayer(parent.label, rule.type, rule.val);
-                
-                if (childrenChords.length === 0) return;
-
-                // Divide parent's span among children
-                let slice = parent.span / childrenChords.length;
-                let startAngle = parent.angle - (parent.span / 2) + (slice / 2);
-
-                childrenChords.forEach((childLabel, i) => {
-                    let myAngle = startAngle + (i * slice);
-                    
-                    let childNode = {
-                        id: `${parent.id}_${i}`,
-                        label: childLabel,
-                        depth: depth,
-                        angle: myAngle,
-                        span: slice,
-                        parentId: parent.id,
-                        x: 0, y: 0 // Calc later
-                    };
-
-                    nodes.push(childNode);
-                    edges.push({ from: parent, to: childNode });
-                    nextGeneration.push(childNode);
-                });
-            });
-
-            parents = nextGeneration;
-        });
-
-        calculateLayout();
+        if (ruleType === 'interval') {
+            let interval = parseInt(ruleVal);
+            children.push(getName(pRoot + interval) + quality);
+            if (interval !== 6) children.push(getName(pRoot - interval) + quality);
+        } else {
+            if (ruleVal === 'parallel') {
+                children.push(getName(pRoot + 2) + quality, getName(pRoot - 2) + quality, getName(pRoot + 3) + quality);
+            } else if (ruleVal === 'coltrane') {
+                children.push(getName(pRoot + 4) + quality, getName(pRoot + 8) + quality);
+            } else if (ruleVal === 'extend') {
+                let newQ = !quality.includes("7") ? "Maj7" : (!quality.includes("9") ? "Maj9" : "Maj11");
+                if (quality.includes("m")) newQ = newQ.replace("Maj", "m");
+                children.push(pRootName + newQ);
+            } else if (ruleVal.startsWith("common")) {
+                let req = parseInt(ruleVal.replace("common", ""));
+                for(let i=0; i<12; i++) {
+                    ["", "m"].forEach(q => {
+                        let cand = getName(i) + q;
+                        if (cand !== parentChord) {
+                            let shared = pIndices.filter(n => getIndices(cand).includes(n)).length;
+                            if (shared >= req) children.push(cand);
+                        }
+                    });
+                }
+            }
+        }
+        return [...new Set(children)].slice(0, 6);
     }
 
-    function calculateLayout() {
-        // Scale radius based on how many rings we have
-        const maxDepth = nodes.reduce((max, n) => Math.max(max, n.depth), 0);
+    function generateGraph() {
+        nodes = []; edges = [];
+        let rootLabel = document.getElementById("rootNote").value + document.getElementById("rootQuality").value;
         
-        // Dynamic sizing: If many rings, pack them tighter
-        let baseRadius = (window.innerHeight / 2) / (maxDepth + 1.5); 
+        // Root Node
+        let rootNode = { id: "root", label: rootLabel, depth: 0, angle: 0, span: Math.PI * 2, x: 0, y: 0 };
+        nodes.push(rootNode);
 
-        nodes.forEach(n => {
-            if (n.depth === 0) return;
-            
-            let r = n.depth * baseRadius;
-            // -PI/2 to start 12 o'clock
-            n.x = Math.cos(n.angle - Math.PI/2) * r;
-            n.y = Math.sin(n.angle - Math.PI/2) * r;
+        let parents = [rootNode];
+        let uiRings = Array.from(container.children);
+
+        uiRings.forEach((div, depthIdx) => {
+            let type = div.querySelector(".rule-type").value;
+            let val = div.querySelector(".rule-value").value;
+            let nextGen = [];
+            let depth = depthIdx + 1;
+
+            parents.forEach(p => {
+                let kids = generateNextLayer(p.label, type, val);
+                if (kids.length) {
+                    let slice = p.span / kids.length;
+                    let startAngle = p.angle - (p.span/2) + (slice/2);
+                    kids.forEach((kLabel, i) => {
+                        let node = {
+                            id: `${p.id}_${i}`, label: kLabel, depth: depth,
+                            angle: startAngle + (i * slice), span: slice, parentId: p.id, x:0, y:0
+                        };
+                        nodes.push(node);
+                        edges.push({ from: p, to: node });
+                        nextGen.push(node);
+                    });
+                }
+            });
+            parents = nextGen;
         });
-
+        calculateLayout();
         drawCanvas();
     }
 
-    // ==========================================
-    // 5. CANVAS & AUDIO (Playable)
-    // ==========================================
+    function calculateLayout() {
+        const maxDepth = nodes.reduce((m, n) => Math.max(m, n.depth), 0);
+        let baseRadius = (window.innerHeight / 2) / (maxDepth + 1.5);
+        nodes.forEach(n => {
+            if (n.depth > 0) {
+                let r = n.depth * baseRadius;
+                n.x = Math.cos(n.angle - Math.PI/2) * r;
+                n.y = Math.sin(n.angle - Math.PI/2) * r;
+            }
+        });
+    }
 
+    // ==========================================
+    // 5. CANVAS & AUDIO (Hover Version)
+    // ==========================================
     const canvas = document.getElementById("canvas");
     const ctx = canvas.getContext("2d");
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     let cx, cy;
-    
-    // Audio Context
-    const AudioContext = window.AudioContext || window.webkitAudioContext;
-    const audioCtx = new AudioContext();
+    let lastHoveredNode = null;
 
     function resize() {
-        const container = document.getElementById("canvas-container");
-        canvas.width = container.offsetWidth;
-        canvas.height = container.offsetHeight;
-        cx = canvas.width / 2;
-        cy = canvas.height / 2;
+        canvas.width = document.getElementById("canvas-container").offsetWidth;
+        canvas.height = document.getElementById("canvas-container").offsetHeight;
+        cx = canvas.width / 2; cy = canvas.height / 2;
         drawCanvas();
     }
     window.addEventListener("resize", resize);
 
+    function playTone(freq, time) {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.frequency.value = freq;
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        gain.gain.setValueAtTime(0, time);
+        gain.gain.linearRampToValueAtTime(0.1, time + 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.001, time + 1.0);
+        osc.start(time);
+        osc.stop(time + 1.2);
+    }
+
+    function playChord(chordName) {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        let indices = getIndices(chordName);
+        indices.forEach((idx, i) => {
+            let note = NOTE_NAMES[idx];
+            let freq = FREQS[note];
+            if (i > 0 && idx < indices[0]) freq *= 2; 
+            playTone(freq, audioCtx.currentTime + (i * 0.03));
+        });
+    }
+
     function drawCanvas() {
         if (!cx) resize();
-        
-        ctx.fillStyle = "black"; // Transparent gradient handled by CSS
+        ctx.fillStyle = "transparent";
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
         ctx.save();
         ctx.translate(cx, cy);
 
         // Edges
-        ctx.strokeStyle = "rgba(255, 255, 255, 0.15)";
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.1)";
         edges.forEach(e => {
-            ctx.lineWidth = Math.max(0.5, 3 - e.to.depth); 
-            ctx.beginPath();
-            ctx.moveTo(e.from.x, e.from.y);
-            ctx.lineTo(e.to.x, e.to.y);
-            ctx.stroke();
+            ctx.lineWidth = Math.max(0.5, 3 - e.to.depth);
+            ctx.beginPath(); ctx.moveTo(e.from.x, e.from.y); ctx.lineTo(e.to.x, e.to.y); ctx.stroke();
         });
 
         // Nodes
         nodes.forEach(n => {
-            // Dynamic Size: Outer rings get smaller
-            let size = Math.max(4, 22 - (n.depth * 3));
-            if (n.depth === 0) size = 30;
-
-            // Color: Rainbow depth
-            let hue = (n.depth * 45 + 200) % 360; 
+            let size = n.depth === 0 ? 30 : Math.max(4, 22 - (n.depth * 3));
+            
+            // NEW: Color Logic
+            let color = getNoteColor(n.label);
             
             ctx.beginPath();
             ctx.arc(n.x, n.y, size, 0, Math.PI * 2);
-            ctx.fillStyle = `hsl(${hue}, 70%, 50%)`;
-            ctx.shadowBlur = 10;
-            ctx.shadowColor = `hsl(${hue}, 70%, 50%)`;
+            ctx.fillStyle = color;
             ctx.fill();
-            ctx.shadowBlur = 0;
 
-            // Text: Only show if node is big enough
-            if (size > 8) {
-                ctx.fillStyle = "white";
-                ctx.font = `${Math.floor(size/1.2)}px Arial`;
-                ctx.textAlign = "center";
-                ctx.textBaseline = "middle";
-                ctx.fillText(n.label, n.x, n.y);
-            }
-        });
-
-        ctx.restore();
-    }
-
-    // INTERACTION: CLICK TO PLAY
-    const FREQS = { "C":261.63, "C#":277.18, "D":293.66, "D#":311.13, "E":329.63, "F":349.23, "F#":369.99, "G":392.00, "G#":415.30, "A":440.00, "A#":466.16, "B":493.88 };
-
-    function playTone(freq, time) {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = "sine"; 
-        osc.frequency.value = freq;
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        
-        gain.gain.setValueAtTime(0, time);
-        gain.gain.linearRampToValueAtTime(0.15, time + 0.05);
-        gain.gain.exponentialRampToValueAtTime(0.001, time + 1.2);
-        
-        osc.start(time);
-        osc.stop(time + 1.5);
-    }
-
-    canvas.addEventListener('mousedown', e => {
-        if (audioCtx.state === 'suspended') audioCtx.resume();
-
-        const rect = canvas.getBoundingClientRect();
-        const mx = e.clientX - rect.left - cx;
-        const my = e.clientY - rect.top - cy;
-
-        // Find clicked node (reverse iteration for z-index feel)
-        for (let i = nodes.length - 1; i >= 0; i--) {
-            let n = nodes[i];
-            let size = Math.max(4, 22 - (n.depth * 3));
-            if (n.depth===0) size=30;
-
-            let dist = Math.sqrt((mx-n.x)**2 + (my-n.y)**2);
-            if (dist < size + 2) {
-                // PLAY CHORD
-                let indices = getIndices(n.label);
-                indices.forEach((idx, k) => {
-                    let note = NOTE_NAMES[idx];
-                    let freq = FREQS[note];
-                    // Very crude octave handling
-                    if (k > 0 && idx < indices[0]) freq *= 2; 
-                    playTone(freq, audioCtx.currentTime + (k*0.05));
-                });
-                
-                // Highlight
-                ctx.save();
-                ctx.translate(cx, cy);
-                ctx.beginPath();
-                ctx.arc(n.x, n.y, size+5, 0, Math.PI*2);
+            // Highlight if hovered
+            if (n === lastHoveredNode) {
                 ctx.strokeStyle = "white";
                 ctx.lineWidth = 3;
                 ctx.stroke();
-                ctx.restore();
-                
-                // Clear highlight
-                setTimeout(drawCanvas, 150);
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = "white";
+                ctx.fill(); // re-fill to apply shadow
+                ctx.shadowBlur = 0;
+            }
+
+            // Text
+            if (size > 8) {
+                ctx.fillStyle = "#fff";
+                ctx.font = "bold 12px Arial";
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                ctx.shadowColor = "black"; ctx.shadowBlur = 4;
+                ctx.fillText(n.label, n.x, n.y);
+                ctx.shadowBlur = 0;
+            }
+        });
+        ctx.restore();
+    }
+
+    // NEW: Hover Event Listener
+    canvas.addEventListener('mousemove', e => {
+        const rect = canvas.getBoundingClientRect();
+        const mx = e.clientX - rect.left - cx;
+        const my = e.clientY - rect.top - cy;
+        
+        let foundNode = null;
+        
+        // Find node under mouse
+        for (let i = nodes.length - 1; i >= 0; i--) {
+            let n = nodes[i];
+            let size = n.depth === 0 ? 30 : Math.max(4, 22 - (n.depth * 3));
+            let dist = Math.sqrt((mx - n.x)**2 + (my - n.y)**2);
+            if (dist < size + 2) {
+                foundNode = n;
                 break;
+            }
+        }
+
+        if (foundNode) {
+            // Only trigger if we just entered this node
+            if (lastHoveredNode !== foundNode) {
+                lastHoveredNode = foundNode;
+                playChord(foundNode.label);
+                drawCanvas();
+            }
+        } else {
+            // Left a node
+            if (lastHoveredNode !== null) {
+                lastHoveredNode = null;
+                drawCanvas();
             }
         }
     });
 
-    // Initial Load
+    // Start
     generateGraph();
 
 </script>
