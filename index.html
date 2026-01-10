@@ -39,9 +39,26 @@
 
         /* CANVAS */
         #canvas-container { flex-grow: 1; position: relative; background: radial-gradient(circle at center, #222 0%, #000 100%); cursor: crosshair; }
+
+        /* NAV */
+        nav { position: fixed; top: 0; left: 0; right: 0; height: 40px; background: #1a1a1a; border-bottom: 1px solid #333; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; z-index: 100; }
+        nav a { color: #aaa; text-decoration: none; font-size: 0.85em; transition: color 0.2s; }
+        nav a:hover { color: var(--accent); }
+        .nav-links { display: flex; gap: 20px; }
+        .btn-support { background: #ffdd00; color: #000; padding: 6px 12px; border-radius: 4px; font-weight: bold; font-size: 0.8em; }
+        .btn-support:hover { background: #ffe84d; color: #000 !important; }
+        body { padding-top: 40px; }
     </style>
 </head>
 <body>
+
+<nav>
+    <div class="nav-links">
+        <a href="index.html">Mandala</a>
+        <a href="tonnetz.html">Tonnetz</a>
+    </div>
+    <a href="https://buymeacoffee.com/metallicode?new=1" class="btn-support" target="_blank">Support</a>
+</nav>
 
 <div id="sidebar">
     <div class="header">
